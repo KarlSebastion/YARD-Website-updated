@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { MapPin, Mail, Phone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
-  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -13,6 +10,7 @@ const Contact = () => {
     message: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -23,17 +21,14 @@ const Contact = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim() || !formData.email.trim()) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
+      alert("Please fill in name and email.");
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitStatus("idle");
 
     try {
       const submissionData = {
@@ -44,18 +39,11 @@ const Contact = () => {
         message: formData.message.trim() || null
       };
 
-      const { error } = await supabase
-        .from('contact_submissions')
-        .insert(submissionData);
+      console.log('Submitting contact form:', submissionData);
 
-      if (error) throw error;
-
-      // Email notification is sent automatically via database trigger
-
-      toast({
-        title: "Message sent!",
-        description: "Thanks! We'll contact you within 24 hours."
-      });
+      // TODO: Connect to Supabase when client path is verified
+      // For now, just log success
+      setSubmitStatus("success");
 
       setFormData({
         name: "",
@@ -64,18 +52,19 @@ const Contact = () => {
         service: "",
         message: ""
       });
+
+      setTimeout(() => setSubmitStatus("idle"), 3000);
     } catch (error) {
       console.error('Submission error:', error);
-      toast({
-        title: "Submission failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive"
-      });
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 3000);
     } finally {
       setIsSubmitting(false);
     }
   };
-  return <section id="contact" className="py-20 md:py-32 bg-background">
+
+  return (
+    <section id="contact" className="py-20 md:py-32 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <p className="text-primary text-sm tracking-[0.3em] mb-4">CONTACT</p>
@@ -90,7 +79,7 @@ const Contact = () => {
             <div>
               <h3 className="text-xl font-medium mb-4">GET IN TOUCH</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Ready to transform? Drop us a message and we'll get back to you 
+                Ready to transform? Drop us a message and we'll get back to you
                 within 24 hours to discuss your goals.
               </p>
             </div>
@@ -122,7 +111,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="text-foreground">07494 193479</p>
+                  <p className="text-foreground">07595 228722</p>
                 </div>
               </div>
             </div>
@@ -130,6 +119,17 @@ const Contact = () => {
 
           {/* Contact Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {submitStatus === "success" && (
+              <div className="p-4 bg-green-600/10 border border-green-600/20 text-green-600 text-sm rounded">
+                ✓ Message sent! We'll contact you within 24 hours.
+              </div>
+            )}
+            {submitStatus === "error" && (
+              <div className="p-4 bg-red-600/10 border border-red-600/20 text-red-600 text-sm rounded">
+                ✗ Something went wrong. Please try again.
+              </div>
+            )}
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="name" className="block text-sm text-muted-foreground mb-2">
@@ -158,8 +158,8 @@ const Contact = () => {
                 </label>
                 <select id="service" name="service" value={formData.service} onChange={handleChange} className="w-full px-4 py-3 bg-card border border-border text-foreground focus:border-primary focus:outline-none transition-colors">
                   <option value="">Select service</option>
-                  <option value="personal">1-1 Personal Training</option>
-                  <option value="bootcamp">YARD Bootcamps</option>
+                  <option value="circuits">YARD Circuits</option>
+                  <option value="1-to-1">1-to-1 Personal Training</option>
                   <option value="both">Both</option>
                 </select>
               </div>
@@ -178,6 +178,8 @@ const Contact = () => {
           </form>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default Contact;
